@@ -40,7 +40,7 @@ resource "aws_api_gateway_integration" "post_process_payment_integration" {
 # Create the API Gateway deployment
 resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.api.id
-  stage_name  = "new-dev"  # Changed stage name to avoid conflict
+  stage_name  = "dev"  # Changed stage name to avoid conflict
   depends_on  = [aws_api_gateway_integration.post_process_payment_integration]
 }
 
@@ -48,12 +48,12 @@ resource "aws_api_gateway_deployment" "api_deployment" {
 resource "aws_api_gateway_stage" "api_stage" {
   deployment_id = aws_api_gateway_deployment.api_deployment.id
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  stage_name    = "new-dev"  # Changed stage name to avoid conflict
+  stage_name    = "dev"  # Changed stage name to avoid conflict
 }
 
 # Use your existing ACM certificate ARN
 resource "aws_api_gateway_domain_name" "custom_domain" {
-  domain_name              = "payment.dev.flyflair.com"  # Your sub-domain
+  domain_name              = "payment.dev.flyflair.com"  # New sub-domain for the API
   regional_certificate_arn = "arn:aws:acm:ca-central-1:017820679929:certificate/8c578eec-1175-4232-b983-80d8982ee9a4"  # Replace with your ACM certificate ARN
   endpoint_configuration {
     types = ["REGIONAL"]
@@ -67,10 +67,10 @@ resource "aws_api_gateway_base_path_mapping" "base_path_mapping" {
   stage_name  = aws_api_gateway_stage.api_stage.stage_name
 }
 
-# Create a DNS record in Route 53 for the custom domain
+# Create a DNS record in Route 53 for the new subdomain
 resource "aws_route53_record" "api_gateway_record" {
   zone_id = "Z06424622C954HY52QYPT"  # Replace with your actual Route 53 hosted zone ID
-  name    = "payment.dev.flyflair.com"  # Your sub-domain
+  name    = "api.payment.dev.flyflair.com"  # Your sub-domain
   type    = "A"
   alias {
     name                   = aws_api_gateway_domain_name.custom_domain.cloudfront_domain_name
@@ -89,3 +89,4 @@ resource "aws_api_gateway_authorizer" "lambda_authorizer" {
   identity_source                  = "method.request.header.Authorization"
   type                             = "TOKEN"
 }
+
