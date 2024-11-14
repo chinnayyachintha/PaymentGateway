@@ -51,10 +51,10 @@ resource "aws_api_gateway_stage" "api_stage" {
   stage_name    = "dev"
 }
 
-# Create a Custom Domain for HTTPS access in API Gateway using ACM Certificate for Sub-domain
+# Create a Custom Domain for HTTPS access in API Gateway using the already existing ACM Certificate for Sub-domain
 resource "aws_api_gateway_domain_name" "custom_domain" {
   domain_name              = "paymentgateway.spovedsys.shop" # Your sub-domain
-  regional_certificate_arn = aws_acm_certificate.api_gateway_cert.arn
+  regional_certificate_arn = "<YOUR_EXISTING_CERTIFICATE_ARN>" # Replace with the ARN of your existing ACM certificate
   endpoint_configuration {
     types = ["REGIONAL"]
   }
@@ -67,35 +67,17 @@ resource "aws_api_gateway_base_path_mapping" "base_path_mapping" {
   stage_name  = aws_api_gateway_stage.api_stage.stage_name
 }
 
-# Create the ACM certificate for your sub-domain
-resource "aws_acm_certificate" "api_gateway_cert" {
-  domain_name       = "paymentgateway.spovedsys.shop" # Sub-domain for API Gateway
-  validation_method = "DNS"
-
-  lifecycle {
-    create_before_destroy = true
+# Route 53 DNS record for pointing the subdomain to API Gateway
+resource "aws_route53_record" "api_gateway_record" {
+  zone_id = "Z01989893SGGNBKHQ5RZ1"  # Replace with your actual Route 53 hosted zone ID
+  name    = "paymentgateway.spovedsys.shop"  # Your sub-domain
+  type    = "A"
+  alias {
+    name                   = aws_api_gateway_domain_name.custom_domain.cloudfront_domain_name
+    zone_id                = aws_api_gateway_domain_name.custom_domain.cloudfront_zone_id
+    evaluate_target_health = true
   }
 }
-
-# Add a null_resource to ensure ACM certificate creation before DNS record creation
-resource "null_resource" "wait_for_certificate" {
-  depends_on = [aws_acm_certificate.api_gateway_cert]
-}
-
-# Route 53 DNS record for ACM validation
-resource "aws_route53_record" "cert_validation" {
-  # Use for_each to iterate over each validation option
-  for_each = { for dvo in aws_acm_certificate.api_gateway_cert.domain_validation_options : dvo.resource_record_name => dvo }
-
-  zone_id = "Z01989893SGGNBKHQ5RZ1"  # Replace with your actual Route 53 hosted zone ID
-
-  name    = each.value.resource_record_name
-  type    = each.value.resource_record_type
-  records = [each.value.resource_record_value]
-  ttl     = 60
-}
-
-
 
 # Define the API Gateway Lambda Authorizer
 resource "aws_api_gateway_authorizer" "lambda_authorizer" {
