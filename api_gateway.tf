@@ -23,8 +23,8 @@ resource "aws_api_gateway_method" "post_process_payment" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.process_payment.id
   http_method   = "POST"
-  authorization = "CUSTOM"                                        # Using Custom Lambda Authorizer for authorization
-  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id # Referencing the Lambda Authorizer
+  authorization = "CUSTOM"  # Using Custom Lambda Authorizer for authorization
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id  # Referencing the Lambda Authorizer
 }
 
 # Set up the integration (Lambda) for handling the POST request
@@ -32,15 +32,15 @@ resource "aws_api_gateway_integration" "post_process_payment_integration" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.process_payment.id
   http_method             = aws_api_gateway_method.post_process_payment.http_method
-  type                    = "AWS_PROXY"                                           # Assuming Lambda Proxy Integration
-  uri                     = aws_lambda_function.process_payment_lambda.invoke_arn # Replace with your Lambda ARN
+  type                    = "AWS_PROXY"  # Assuming Lambda Proxy Integration
+  uri                     = aws_lambda_function.process_payment_lambda.invoke_arn  # Replace with your Lambda ARN
   integration_http_method = "POST"
 }
 
 # Create the API Gateway deployment
 resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.api.id
-  stage_name  = "dev" # Your stage name
+  stage_name  = "new-dev"  # Changed stage name to avoid conflict
   depends_on  = [aws_api_gateway_integration.post_process_payment_integration]
 }
 
@@ -48,13 +48,13 @@ resource "aws_api_gateway_deployment" "api_deployment" {
 resource "aws_api_gateway_stage" "api_stage" {
   deployment_id = aws_api_gateway_deployment.api_deployment.id
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  stage_name    = "dev"
+  stage_name    = "new-dev"  # Changed stage name to avoid conflict
 }
 
 # Use your existing ACM certificate ARN
 resource "aws_api_gateway_domain_name" "custom_domain" {
-  domain_name              = "paymentgateway.spovedsys.shop" # Your sub-domain
-  regional_certificate_arn = "<YOUR_EXISTING_CERTIFICATE_ARN>" # Replace with your existing ACM certificate ARN
+  domain_name              = "payment.dev.flyflair.com"  # Your sub-domain
+  regional_certificate_arn = "arn:aws:acm:ca-central-1:017820679929:certificate/8c578eec-1175-4232-b983-80d8982ee9a4"  # Replace with your ACM certificate ARN
   endpoint_configuration {
     types = ["REGIONAL"]
   }
@@ -69,8 +69,8 @@ resource "aws_api_gateway_base_path_mapping" "base_path_mapping" {
 
 # Create a DNS record in Route 53 for the custom domain
 resource "aws_route53_record" "api_gateway_record" {
-  zone_id = "<YOUR_ROUTE_53_HOSTED_ZONE_ID>"  # Replace with your actual Route 53 hosted zone ID
-  name    = "paymentgateway.spovedsys.shop"    # Your sub-domain
+  zone_id = "Z06424622C954HY52QYPT"  # Replace with your actual Route 53 hosted zone ID
+  name    = "payment.dev.flyflair.com"  # Your sub-domain
   type    = "A"
   alias {
     name                   = aws_api_gateway_domain_name.custom_domain.cloudfront_domain_name
@@ -78,7 +78,6 @@ resource "aws_route53_record" "api_gateway_record" {
     evaluate_target_health = true
   }
 }
-
 
 # Define the API Gateway Lambda Authorizer
 resource "aws_api_gateway_authorizer" "lambda_authorizer" {
