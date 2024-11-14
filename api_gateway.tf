@@ -51,10 +51,10 @@ resource "aws_api_gateway_stage" "api_stage" {
   stage_name    = "dev"
 }
 
-# Create a Custom Domain for HTTPS access in API Gateway using the already existing ACM Certificate for Sub-domain
+# Use your existing ACM certificate ARN
 resource "aws_api_gateway_domain_name" "custom_domain" {
   domain_name              = "paymentgateway.spovedsys.shop" # Your sub-domain
-  regional_certificate_arn = "<YOUR_EXISTING_CERTIFICATE_ARN>" # Replace with the ARN of your existing ACM certificate
+  regional_certificate_arn = "<YOUR_EXISTING_CERTIFICATE_ARN>" # Replace with your existing ACM certificate ARN
   endpoint_configuration {
     types = ["REGIONAL"]
   }
@@ -67,10 +67,10 @@ resource "aws_api_gateway_base_path_mapping" "base_path_mapping" {
   stage_name  = aws_api_gateway_stage.api_stage.stage_name
 }
 
-# Route 53 DNS record for pointing the subdomain to API Gateway
+# Create a DNS record in Route 53 for the custom domain
 resource "aws_route53_record" "api_gateway_record" {
-  zone_id = "Z01989893SGGNBKHQ5RZ1"  # Replace with your actual Route 53 hosted zone ID
-  name    = "paymentgateway.spovedsys.shop"  # Your sub-domain
+  zone_id = "<YOUR_ROUTE_53_HOSTED_ZONE_ID>"  # Replace with your actual Route 53 hosted zone ID
+  name    = "paymentgateway.spovedsys.shop"    # Your sub-domain
   type    = "A"
   alias {
     name                   = aws_api_gateway_domain_name.custom_domain.cloudfront_domain_name
@@ -78,6 +78,7 @@ resource "aws_route53_record" "api_gateway_record" {
     evaluate_target_health = true
   }
 }
+
 
 # Define the API Gateway Lambda Authorizer
 resource "aws_api_gateway_authorizer" "lambda_authorizer" {
