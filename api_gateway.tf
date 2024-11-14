@@ -1,4 +1,4 @@
-# Define your API Gateway REST API
+# Define the API Gateway REST API
 resource "aws_api_gateway_rest_api" "api" {
   name        = "payment-gateway-api"
   description = "API for processing payments securely"
@@ -27,7 +27,7 @@ resource "aws_api_gateway_method" "post_process_payment" {
   authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id # Referencing the Lambda Authorizer
 }
 
-# Set up the integration (e.g., Lambda) for handling the POST request
+# Set up the integration (Lambda) for handling the POST request
 resource "aws_api_gateway_integration" "post_process_payment_integration" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.process_payment.id
@@ -51,9 +51,9 @@ resource "aws_api_gateway_stage" "api_stage" {
   stage_name    = "dev"
 }
 
-# Create a Custom Domain for HTTPS access in API Gateway
+# Create a Custom Domain for HTTPS access in API Gateway using ACM Certificate for Sub-domain
 resource "aws_api_gateway_domain_name" "custom_domain" {
-  domain_name              = "example.com"
+  domain_name              = "paymentgateway.spovedsys.shop" # Your sub-domain
   regional_certificate_arn = aws_acm_certificate.api_gateway_cert.arn
   endpoint_configuration {
     types = ["REGIONAL"]
@@ -67,33 +67,35 @@ resource "aws_api_gateway_base_path_mapping" "base_path_mapping" {
   stage_name  = aws_api_gateway_stage.api_stage.stage_name
 }
 
-# Create the SSL Certificate in AWS Certificate Manager (ACM)
+# Create the ACM certificate for your sub-domain
 resource "aws_acm_certificate" "api_gateway_cert" {
-  domain_name       = "example.com"               # Primary domain
+  domain_name       = "paymentgateway.spovedsys.shop" # Sub-domain for API Gateway
   validation_method = "DNS"
-
-  # Add an alternative name (optional, e.g., www.example.com)
-  subject_alternative_names = ["www.example.com"]
 
   lifecycle {
     create_before_destroy = true
   }
 }
 
-# DNS Validation record for ACM in Route 53
-resource "aws_route53_record" "cert_validation" {
+# Add a null_resource to ensure ACM certificate creation before DNS record creation
+resource "null_resource" "wait_for_certificate" {
   depends_on = [aws_acm_certificate.api_gateway_cert]
+}
 
-  zone_id = "Z3M3LMPEXAMPLE"  # Replace with your actual Route 53 hosted zone ID for example.com
+# Route 53 DNS record for ACM validation
+resource "aws_route53_record" "cert_validation" {
+  # Use for_each to iterate over each validation option
+  for_each = { for dvo in aws_acm_certificate.api_gateway_cert.domain_validation_options : dvo.resource_record_name => dvo }
 
-  # Use for_each to iterate over domain_validation_options set for ACM certificate DNS validation
-  for_each = { for idx, val in aws_acm_certificate.api_gateway_cert.domain_validation_options : idx => val }
+  zone_id = "Z01989893SGGNBKHQ5RZ1"  # Replace with your actual Route 53 hosted zone ID
 
   name    = each.value.resource_record_name
   type    = each.value.resource_record_type
   records = [each.value.resource_record_value]
   ttl     = 60
 }
+
+
 
 # Define the API Gateway Lambda Authorizer
 resource "aws_api_gateway_authorizer" "lambda_authorizer" {
