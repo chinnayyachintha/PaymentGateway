@@ -1,0 +1,52 @@
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+
+# Terraform plan files
+*.tfplan
+
+# Terraform module directory
+.terraform/
+.terraform.lock.hcl
+
+# Compiled files and executables
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Python virtual environment (if any)
+.env
+venv/
+__pycache__/
+*.py[cod]
+
+# Lambda zip files (if using AWS Lambda)
+*.zip
+
+# Log files
+*.log
+
+# Mac OS specific files
+.DS_Store
+
+# IDE specific files (for VSCode)
+.vscode/
+.idea/
+
+# Ignore sensitive files
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+
+# Ignore AWS credential files
+*.aws
+
+# Ignore terraform backend configuration files if used locally
+terraform.tfvars
